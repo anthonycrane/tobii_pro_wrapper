@@ -30,7 +30,7 @@
 # added. 
 
 # -----Import Required Libraries-----
-import gtk, pygtk
+import pyglet
 
 from psychopy import core as pcore
 from psychopy import monitors, visual, gui, data, event
@@ -161,9 +161,10 @@ class TobiiHelper:
         # if no dimensions given
         if dimensions is None:
             # use current screen dimensions
-            thisWin = gtk.Window()
-            thisScreen = thisWin.get_screen()
-            dimensions = (thisScreen.get_width(), thisScreen.get_height())
+            platform = pyglet.window.get_platform()
+            display = platform.get_default_display()      
+            screen = display.get_default_screen()
+            dimensions = (screen.width, screen.height)
         # if dimension not given as tuple
         elif not isinstance(dimensions, tuple):
             raise TypeError("Dimensions must be given as tuple.")
@@ -172,7 +173,7 @@ class TobiiHelper:
         if nameString is None:
             # create monitor calibration object 
             thisMon = monitors.Monitor(allMonitors[0]) 
-            print ("Current monitor name is: " + allMonitors[0])
+            print("Current monitor name is: " + allMonitors[0])
             # set monitor dimensions
             thisMon.setSizePix(dimensions)              
             # save monitor
@@ -185,7 +186,7 @@ class TobiiHelper:
         else:
             # create monitor calibration object 
             thisMon = monitors.Monitor(nameString) 
-            print ("Current monitor name is: " + nameString)
+            print("Current monitor name is: " + nameString)
             # set monitor dimensions
             thisMon.setSizePix(dimensions)              
             # save monitor
@@ -208,7 +209,7 @@ class TobiiHelper:
             raise ValueError("There is no eyetracker.")
         
         # if it is, proceed
-        print "Subscribing to eyetracker."
+        print("Subscribing to eyetracker.")
         self.eyetracker.subscribe_to(tobii.EYETRACKER_GAZE_DATA, 
                                      self.gazeDataCallback, 
                                      as_dictionary = True)
@@ -222,7 +223,7 @@ class TobiiHelper:
         if self.eyetracker is None:
             raise ValueError("There is no eyetracker.")
         # if it is, proceed
-        print "Unsubscribing from eyetracker"
+        print("Unsubscribing from eyetracker")
         self.eyetracker.unsubscribe_from(tobii.EYETRACKER_GAZE_DATA, 
                                          self.gazeDataCallback)
         self.tracking = False
@@ -241,7 +242,7 @@ class TobiiHelper:
             raise ValueError('Eyetracker is not connected.')
             
         # if it is , proceed
-        print "Subscribing to time synchronization data"
+        print("Subscribing to time synchronization data")
         self.eyetracker.subscribe_to(tobii.EYETRACKER_TIME_SYNCHRONIZATION_DATA,
                                      self.timeSyncCallback,
                                      as_dictionary=True)
@@ -251,7 +252,7 @@ class TobiiHelper:
     def stopSyncData(self):
         self.eyetracker.unsubscribe_from(tobii.EYETRACKER_TIME_SYNCHRONIZATION_DATA,
                                         self.timeSyncCallback)
-        print "Unsubscribed from time synchronization data."
+        print("Unsubscribed from time synchronization data.")
   
     # function for converting positions from trackbox coordinate system (mm) to 
     # normalized active display area coordinates   
@@ -330,8 +331,8 @@ class TobiiHelper:
         monHW = (self.win.getSizePix()[0], 
                  self.win.getSizePix()[1])
         wShift, hShift = monHW[0] / 2 , monHW[1] / 2
-        psychoPix = (int(((xyCoor[0]* monHW[0]) - wShift)), 
-                     int(((xyCoor[1] * monHW[1]) - hShift) * -1))
+        psychoPix = ((((xyCoor[0]* monHW[0]) - wShift)), 
+                     (((xyCoor[1] * monHW[1]) - hShift) * -1))
         # return coordinates in psychowin 'pix' units
         return psychoPix
 
@@ -361,7 +362,7 @@ class TobiiHelper:
         
 # ----- Functions for collecting eye and gaze data -----
       
-    # function for collecting gaze coordinates in tobiis ada coordinate 
+    # function for collecting gaze coordinates in psychopy pixel coordinate 
     # system. currently written to return the average (x, y) position of both 
     # eyes, but can be easily rewritten to return data from one or both eyes   
     def getAvgGazePos(self):
@@ -388,7 +389,7 @@ class TobiiHelper:
             else:
                 # or if no data, hide points by showing off screen
                 avgGazePos = (np.nan, np.nan)
-            return avgGazePos
+            return self.ada2PsychoPix(avgGazePos)
 
                 
     # function for finding the avg 3d position of subject's eyes, so that they
@@ -757,7 +758,7 @@ class TobiiHelper:
                 raise KeyboardInterrupt("You aborted the script manually.")
             elif event.getKeys(keyList=['c']):
                 valWin.close()
-                print ("Exiting calibration validation.")
+                print("Exiting calibration validation.")
                 self.stopGazeData()
                 return
                 
@@ -949,7 +950,7 @@ class TobiiHelper:
                                 
                 # continue with calibration procedure           
                 elif key in ['c']:
-                    print ("Finished checking. Resuming calibration.")
+                    print("Finished checking. Resuming calibration.")
                     checkMsg.pos = (0.0, 0.0)
                     checkMsg.text = ("Finished checking. Resuming calibration.")
                     checkMsg.draw()
@@ -1042,14 +1043,14 @@ class TobiiHelper:
             pcore.wait(0.5)  
             
             # conduct calibration of point
-            print ("Collecting data at {0}." .format(i + 1))
+            print("Collecting data at {0}." .format(i + 1))
             while self.calibration.collect_data(pointList[i][0], 
                                                 pointList[i][1]) != tobii.CALIBRATION_STATUS_SUCCESS:
                 self.calibration.collect_data(pointList[i][0], 
                                               pointList[i][1])   
                 
             # feedback from calibration
-            print ("{0} for data at point {1}." 
+            print("{0} for data at point {1}." 
                    .format(self.calibration.collect_data(pointList[i][0],
                    pointList[i][1]), i + 1))
             pcore.wait(0.3)  # wait before continuing
@@ -1077,7 +1078,7 @@ class TobiiHelper:
         # clear screen
         calibWin.flip()   
         # print feedback
-        print "Computing and applying calibration."
+        print("Computing and applying calibration.")
         # compute and apply calibration to get calibration result object    
         calibResult = self.calibration.compute_and_apply()        
         # return calibration result
@@ -1216,7 +1217,7 @@ class TobiiHelper:
         while True:
             
             # create point order form randomized dictionary values
-            pointOrder = redoCalDict.values()
+            pointOrder = list(redoCalDict.values())
             
             # perform calibration 
             calibResult = self.getCalibrationData(calibWin, pointOrder)
@@ -1253,7 +1254,7 @@ class TobiiHelper:
             # Redo calibration for specific points if necessary 
             if not redoCalDict:  # if no points to redo
             # finish calibration
-                print "Calibration successful. Moving on to validation mode."
+                print("Calibration successful. Moving on to validation mode.")
                 calibMessage.text = ("Calibration was successful.\n\n" + \
                                      "Moving on to validation.")
                 calibMessage.draw()
@@ -1281,7 +1282,7 @@ class TobiiHelper:
                 
                 # iterate through list of redo points and remove data from calibration
                 for newPoint in redoCalDict.values():
-                    print newPoint
+                    print(newPoint)
                     self.calibration.discard_data(newPoint[0], newPoint[1])
     
                 # continue with calibration of remaining points
@@ -1310,7 +1311,7 @@ class TobiiHelper:
     # converted into a pandas dataframe. Strongly suggest putting output into 
     # a psychopy data object, as psychopy.data comes with many convenient 
     # functions for organizing experiment flow, recording data, and saving 
-    # files. Gaze position is given in px, eye position, distance, and pupil size
+    # files. Gaze position is given in psychopy pixels, eye position, distance, and pupil size
     # given in mm. 
     def getCurrentData(self):
         # check gaze Data
@@ -1335,6 +1336,7 @@ class TobiiHelper:
         self.currentData = {}
         self.currentData['DeviceTimeStamp'] = np.absolute((timeNow - timeMidnight)/np.timedelta64(1, 'ms'))
         self.currentData['AvgGazePointX'] = self.getAvgGazePos()[0]
+        self.currentData['AvgGazePointX'] = self.getAvgGazePos()[0]
         self.currentData['AvgGazePointY'] = self.getAvgGazePos()[1]            
         self.currentData['AvgPupilDiam'] = self. getPupilSize()
         self.currentData['AvgEyePosX'] = self.getAvgEyePos()[0]
@@ -1345,15 +1347,3 @@ class TobiiHelper:
         
         return self.currentData
   
-
-
-
-
-
-
-
-
-
-
-
-
